@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-//import "hardhat/console.sol";
-
 contract Assessment {
     address payable public owner;
     uint256 public balance;
 
     event Deposit(uint256 amount);
     event Withdraw(uint256 amount);
+    event RandomNumber(uint256 number);
+    event GameResult(bool win, uint256 amount);
 
     constructor(uint initBalance) payable {
         owner = payable(msg.sender);
         balance = initBalance;
     }
 
-    function getBalance() public view returns(uint256){
+    function getBalance() public view returns (uint256) {
         return balance;
     }
 
@@ -56,5 +56,32 @@ contract Assessment {
 
         // emit the event
         emit Withdraw(_withdrawAmount);
+    }
+
+    function generateRandomNumber() public {
+        uint256 randomNumber = uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender))) % 100;
+        uint _previousBalance = balance;
+        balance += randomNumber;
+
+        assert(balance == (_previousBalance + randomNumber));
+        emit RandomNumber(randomNumber);
+    }
+
+    function playGame(uint256 amount) public {
+        require(amount > 0, "Amount must be greater than 0");
+        
+        uint256 randomNumber = uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender))) % 100;
+
+        bool win = randomNumber < 50;
+
+        // update the balance based on the result
+        if (win) {
+            balance += amount;
+        } else {
+            balance -= amount;
+        }   
+
+        // emit the game result
+        emit GameResult(win, amount);
     }
 }
