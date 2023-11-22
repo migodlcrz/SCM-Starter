@@ -1,5 +1,5 @@
-import {useState, useEffect} from "react";
-import {ethers} from "ethers";
+import { useState, useEffect } from "react";
+import { ethers } from "ethers";
 import atm_abi from "../artifacts/contracts/Assessment.sol/Assessment.json";
 
 export default function HomePage() {
@@ -7,40 +7,42 @@ export default function HomePage() {
   const [account, setAccount] = useState(undefined);
   const [atm, setATM] = useState(undefined);
   const [balance, setBalance] = useState(undefined);
+  const [gameAmount, setGameAmount] = useState(1); // Default game amount
 
   const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
   const atmABI = atm_abi.abi;
 
-  const getWallet = async() => {
+  const getWallet = async () => { //RM
     if (window.ethereum) {
       setEthWallet(window.ethereum);
     }
 
     if (ethWallet) {
-      const account = await ethWallet.request({method: "eth_accounts"});
+      const account = await ethWallet.request({ method: "eth_accounts" });
       handleAccount(account);
     }
-  }
+  };
 
-  const handleAccount = (account) => {
+  const handleAccount = (account) => { //HCE
     if (account) {
-      console.log ("Account connected: ", account);
+      console.log("Account connected: ", account);
       setAccount(account);
-    }
-    else {
+    } else {
       console.log("No account found");
     }
-  }
+  };
 
-  const connectAccount = async() => {
+  const connectAccount = async () => { //CMW
     if (!ethWallet) {
-      alert('MetaMask wallet is required to connect');
+      alert("MetaMask wallet is required to connect");
       return;
     }
-  
-    const accounts = await ethWallet.request({ method: 'eth_requestAccounts' });
+
+    const accounts = await ethWallet.request({
+      method: "eth_requestAccounts",
+    });
     handleAccount(accounts);
-    
+
     // once wallet is set we can get a reference to our deployed contract
     getATMContract();
   };
@@ -48,45 +50,77 @@ export default function HomePage() {
   const getATMContract = () => {
     const provider = new ethers.providers.Web3Provider(ethWallet);
     const signer = provider.getSigner();
-    const atmContract = new ethers.Contract(contractAddress, atmABI, signer);
- 
-    setATM(atmContract);
-  }
+    const atmContract = new ethers.Contract(
+      contractAddress,
+      atmABI,
+      signer
+    );
 
-  const getBalance = async() => {
+    setATM(atmContract);
+  };
+
+  const getBalance = async () => {
     if (atm) {
       setBalance((await atm.getBalance()).toNumber());
     }
-  }
+  };
 
-  const deposit = async() => {
+  const deposit = async () => {
     if (atm) {
       let tx = await atm.deposit(1);
-      await tx.wait()
+      await tx.wait();
       getBalance();
     }
-  }
+  };
 
-  const withdraw = async() => {
+  const withdraw = async () => {
     if (atm) {
       let tx = await atm.withdraw(1);
-      await tx.wait()
+      await tx.wait();
       getBalance();
     }
-  }
+  };
+
+  const generateRandomNumber = async () => {
+    if (atm) {
+      // Call the generateRandomNumber function on the smart contract
+      let tx = await atm.generateRandomNumber();
+      await tx.wait();
+
+      // After generating the random number, update the balance
+      getBalance();
+    }
+  };
+
+  const playGame = async () => {
+    if (atm) {
+      let win = await atm.playGame(gameAmount, { gasLimit: 20000000 });
+      console.log(win ? "You won!" : "You lost!");
+      await win.wait();      
+      getBalance();
+    }
+  };
+
+  const handleGameAmountChange = (event) => {
+    setGameAmount(Number(event.target.value));
+  };
 
   const initUser = () => {
     // Check to see if user has Metamask
     if (!ethWallet) {
-      return <p>Please install Metamask in order to use this ATM.</p>
+      return <p>Please install Metamask in order to use this ATM.</p>;
     }
 
     // Check to see if user is connected. If not, connect to their account
     if (!account) {
-      return <button onClick={connectAccount}>Please connect your Metamask wallet</button>
+      return (
+        <button onClick={connectAccount}>
+          Please connect your Metamask wallet
+        </button>
+      );
     }
 
-    if (balance == undefined) {
+    if (balance === undefined) {
       getBalance();
     }
 
@@ -96,22 +130,36 @@ export default function HomePage() {
         <p>Your Balance: {balance}</p>
         <button onClick={deposit}>Deposit 1 ETH</button>
         <button onClick={withdraw}>Withdraw 1 ETH</button>
+        <button onClick={generateRandomNumber}>Deposit Random balance</button>
+        <br /> 
+        <label>
+          Game Amount:
+          <input
+            type="number"
+            value={gameAmount}
+            onChange={handleGameAmountChange}
+          />
+        </label>
+        <button onClick={playGame}>Play Game</button>
       </div>
-    )
-  }
+    );
+  };
 
-  useEffect(() => {getWallet();}, []);
+  useEffect(() => {
+    getWallet();
+  }, []);
 
   return (
     <main className="container">
-      <header><h1>Welcome to the Metacrafters ATM!</h1></header>
+      <header>
+        <h1>Welcome to the Metacrafters Casino!</h1>
+      </header>
       {initUser()}
       <style jsx>{`
         .container {
-          text-align: center
+          text-align: center;
         }
-      `}
-      </style>
+      `}</style>
     </main>
-  )
+  );
 }
